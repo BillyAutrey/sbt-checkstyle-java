@@ -155,3 +155,7 @@ project/plugins/project/
 ### Scala ###
 
 # End of https://www.gitignore.io/api/osx,sbt,java,scala,intellij
+
+.bloop
+.travis.yml
+.metals
