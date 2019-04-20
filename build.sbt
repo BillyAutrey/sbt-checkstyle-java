@@ -14,6 +14,9 @@ bintrayRepository := "sbt-plugins"
 bintrayOrganization in bintray := None
 bintrayPackageLabels := Seq("sbt","plugin")
 
+//dependencies
+libraryDependencies += "com.puppycrawl.tools" % "checkstyle" % "8.19"
+
 //tests
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 
