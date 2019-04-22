@@ -19,14 +19,16 @@ object SbtcheckstylejavaPlugin extends AutoPlugin {
   override def requires = JvmPlugin
 
   object autoImport {
-    val checkstyleVersion = settingKey[String]("Version of checkstyle to import")
-    val checkstyle = taskKey[Unit]("Use Java Checkstyle to analyze only the Java code in a project")
+    val checkstyleConfig = settingKey[String]("Location of a style configuration.  Defaults to resources/google_checks.xml")
+    val checkstyleTarget = settingKey[String]("XML file containing the checkstyle report.")
+    val checkstyle = taskKey[Int]("Use Java Checkstyle to analyze only the Java code in a project")
   }
 
   import autoImport._
 
   override lazy val projectSettings = Seq(
-    checkstyleVersion := "8.19",
+    checkstyleConfig := "/google_checks.xml",
+    checkstyleTarget := "target/checkstyle-result.xml",
     checkstyle := checkstyleProcess.value
   )
 
@@ -37,26 +39,29 @@ object SbtcheckstylejavaPlugin extends AutoPlugin {
   private def relPath(file: File, base: File): File =
     file.relativeTo(base).getOrElse(file)
 
-  // todo - implement
-  private def getConfig(): String = ""
+  // todo - Default to an internal config if checkstyleConfig is empty
+  private def getConfig(): Def.Initialize[Task[String]] = Def.task {
+    checkstyleConfig.value
+  }
 
-  // todo - implement
+  // todo - Possible option to load properties file.
+  // see http://checkstyle.sourceforge.net/config.html#Properties
   private def getProperties(): Properties = {
     System.getProperties
   }
 
   // todo - return NONE if stdout, CLOSE if a file.
   private def closeStream(): OutputStreamOptions = {
-    OutputStreamOptions.NONE
+    OutputStreamOptions.CLOSE
   }
 
-  // todo - XML to file, default to stdout
-  private def getListener(): AuditListener = {
-    //if(outDestination = stdout)
-    //if xml
-    //val outPath = ""
-    //new XMLLogger(new FileOutputStream(outPath),closeStream())
-    new DefaultLogger(System.out,closeStream())
+  /**
+    * Returns a listener that logs XML to a file corresponding to target, and logs normal output to a string
+    * @param target Name/path of the file to contain output
+    * @return
+    */
+  private def getListener(target: String, logger: Logger): AuditListener = {
+    new SbtCheckstyleLogger(new FileOutputStream(target),closeStream(), logger)
   }
 
   def checkstyleFetchGoogleStyle(): Def.Initialize[Task[Boolean]] = Def.task {
@@ -69,7 +74,11 @@ object SbtcheckstylejavaPlugin extends AutoPlugin {
     false
   }
 
-  private def checkstyleProcess(): Def.Initialize[Task[Unit]] = Def.task {
+  /**
+    * Gathers configs and runs checkstyle's Checker.process.
+    * @return
+    */
+  private def checkstyleProcess(): Def.Initialize[Task[Int]] = Def.task {
     val log = streams.value.log
     val allSources = (sources in Compile).value
     val javaFiles = allSources.filter(_.getName endsWith ".java").asJava
@@ -81,12 +90,17 @@ object SbtcheckstylejavaPlugin extends AutoPlugin {
     log.info(s"Checkstyle version: ${checker.getClass.getPackage.getImplementationVersion}")
 
     //configure
-    val config = ConfigurationLoader.loadConfiguration(getConfig(), new PropertiesExpander(getProperties()))
-    checker.configure(config)
-    checker.addListener(getListener())
+    val config = ConfigurationLoader.loadConfiguration(getConfig().value, new PropertiesExpander(getProperties()))
     checker.setModuleClassLoader(classOf[Checker].getClassLoader)
+    checker.configure(config)
+    checker.addListener(getListener(checkstyleTarget.value, log))
 
+    //run
     log.info(s"Running checkstyle: ${relPath(javaSrcDir, baseDir)}")
-    checker.process(javaFiles)
+    val findings = checker.process(javaFiles)
+
+    checker.destroy()
+
+    findings
   }
 }
