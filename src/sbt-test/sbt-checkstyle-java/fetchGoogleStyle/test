@@ -6,4 +6,5 @@ $ exists src/main/resources/google_checks.xml
 #execute the test
 > checkstyleTest
 #check to see if the checkstyle result file got created
+$ pause
 $ exists target/checkstyle-result.xml

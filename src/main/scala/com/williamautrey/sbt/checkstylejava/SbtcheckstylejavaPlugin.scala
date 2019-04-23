@@ -22,17 +22,17 @@ object SbtcheckstylejavaPlugin extends AutoPlugin {
   override def requires = JvmPlugin
 
   object autoImport {
-    val checkstyleConfig = settingKey[String]("Location of a style configuration.  Defaults to resources/google_checks.xml")
+    val checkstyleConfig = settingKey[String]("Location of a style configuration.  Defaults to <resource dir>/google_checks.xml")
     val checkstyleTarget = settingKey[String]("XML file containing the checkstyle report.")
-    val checkstyleFetchGoogle = taskKey[String]("Fetch checkstyle's Google style format from their git repository.")
+    val checkstyleFetchGoogle = taskKey[File]("Fetch checkstyle's Google style format from their git repository.")
     val checkstyle = taskKey[Int]("Use Java Checkstyle to analyze only the Java code in a project")
   }
 
   import autoImport._
 
   override lazy val projectSettings = Seq(
-    checkstyleConfig := "/google_checks.xml",
-    checkstyleTarget := "target/checkstyle-result.xml",
+    checkstyleConfig := ((resourceDirectory in Compile).value / "google_checks.xml").getPath,
+    checkstyleTarget := (target.value / "checkstyle-result.xml").getPath,
     checkstyleFetchGoogle := checkstyleFetchGoogleStyle().value,
     checkstyle := checkstyleProcess.value
   )
@@ -67,17 +67,18 @@ object SbtcheckstylejavaPlugin extends AutoPlugin {
   /**
     * Fetches Google checkstyle format from checkstyle's public repo.  Puts it in src/main/resources/google_checks.xml
     */
-  def checkstyleFetchGoogleStyle(): Def.Initialize[Task[String]] = Def.task {
+  def checkstyleFetchGoogleStyle(): Def.Initialize[Task[File]] = Def.task {
     //fetch https://raw.githubusercontent.com/checkstyle/checkstyle/master/src/main/resources/google_checks.xml
-    val destination = "src/main/resources/google_checks.xml"
-    file(destination) #< url("https://raw.githubusercontent.com/checkstyle/checkstyle/master/src/main/resources/google_checks.xml") !;
+    val destination = (resourceDirectory in Compile).value / "google_checks.xml"
+    destination #< url("https://raw.githubusercontent.com/checkstyle/checkstyle/master/src/main/resources/google_checks.xml") !;
     destination
   }
 
-  def checkstyleFetchSunStyle(): Def.Initialize[Task[Boolean]] = Def.task{
+  def checkstyleFetchSunStyle(): Def.Initialize[Task[File]] = Def.task{
     //fetch https://raw.githubusercontent.com/checkstyle/checkstyle/master/src/main/resources/sun_checks.xml
-    Process("resources/sun_checks.xml") #< "https://raw.githubusercontent.com/checkstyle/checkstyle/master/src/main/resources/sun_checks.xml"
-    false
+    val destination = (resourceDirectory in Compile).value / "sun_checks.xml"
+    destination #< url("https://raw.githubusercontent.com/checkstyle/checkstyle/master/src/main/resources/sun_checks.xml") !;
+    destination
   }
 
   /**
