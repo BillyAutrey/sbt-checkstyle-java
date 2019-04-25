@@ -1,7 +1,7 @@
 scalaVersion := "2.12.8"
 
 name := "sbt-checkstyle-java"
-version := "0.1-SNAPSHOT"
+version := "0.1.1"
 organization := "com.williamautrey"
 description := "SBT Plugin to run checkstyle on Java code"
 licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html"))

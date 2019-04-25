@@ -2,7 +2,25 @@
 
 A lightweight program to enable support for the Java "Checkstyle" plugin in compiled Java code.
 
-## Usage
+## Setup
+
+*TODO*
+
+Add to project/plugins.sbt:
+
+**project/plugins.sbt**
+```sbtshell
+
+```
+
+**build.sbt**
+```
+
+```
+
+## Running
+
+This plugin adds a `checkstyle` command to SBT.  Run the following task to generate a checkstyle report.
 
 ```sbtshell
 sbt checkstyle
